@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  ENGINEER
+  VIEWER
+}
+
+enum DeviceType {
+  ROUTER
+  SWITCH
+  MODEM
+  PHONE
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(VIEWER)
+  createdAt    DateTime @default(now())
+
+  createdTickets  Ticket[] @relation("CreatedTickets")
+  assignedTickets Ticket[] @relation("AssignedTickets")
+}
+
+model Device {
+  id           String       @id @default(uuid())
+  name         String
+  type         DeviceType
+  serialNumber String       @unique
+  ipAddress    String
+  status       DeviceStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  title       String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+
+  deviceId String
+  device   Device @relation(fields: [deviceId], references: [id])
+
+  createdByUserId String
+  createdByUser   User @relation("CreatedTickets", fields: [createdByUserId], references: [id])
+
+  assignedToUserId String?
+  assignedToUser   User? @relation("AssignedTickets", fields: [assignedToUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
