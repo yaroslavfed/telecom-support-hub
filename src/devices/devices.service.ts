@@ -5,48 +5,48 @@ import { UpdateDeviceDto } from './dto/update-device.dto';
 
 @Injectable()
 export class DevicesService {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    async create(dto: CreateDeviceDto) {
-        return this.prisma.device.create({ 
-            data: dto 
-        });
+  async create(dto: CreateDeviceDto) {
+    return this.prisma.device.create({
+      data: dto,
+    });
+  }
+
+  async findAll() {
+    return this.prisma.device.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    const device = await this.prisma.device.findUnique({
+      where: { id },
+    });
+
+    if (!device) {
+      throw new Error(`Device with ID ${id} not found`);
     }
 
-    async findAll() {
-        return this.prisma.device.findMany({
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
-    }
+    return device;
+  }
 
-    async findOne(id: string) {
-        const device = await this.prisma.device.findUnique({
-            where: { id }
-        });
+  async update(id: string, dto: UpdateDeviceDto) {
+    await this.findOne(id);
 
-        if (!device) {
-            throw new Error(`Device with ID ${id} not found`);
-        }
+    return this.prisma.device.update({
+      where: { id },
+      data: dto,
+    });
+  }
 
-        return device;
-    }
+  async remove(id: string) {
+    await this.findOne(id);
 
-    async update(id: string, dto: UpdateDeviceDto) {
-        await this.findOne(id);
-
-        return this.prisma.device.update({
-            where: { id },
-            data: dto
-        });
-    }
-
-    async remove(id: string) {
-        await this.findOne(id);
-
-        return this.prisma.device.delete({
-            where: { id }
-        });
-    }
+    return this.prisma.device.delete({
+      where: { id },
+    });
+  }
 }
