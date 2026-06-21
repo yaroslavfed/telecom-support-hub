@@ -18,36 +18,48 @@ export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ENGINEER)
   create(@Body() dto: CreateTicketDto, @CurrentUser() user: CurrentUserData) {
     return this.ticketsService.create(dto, user.id);
   }
 
   @Get()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ENGINEER, UserRole.VIEWER)
   findAll() {
     return this.ticketsService.findAll();
   }
 
   @Get(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ENGINEER, UserRole.VIEWER)
   findOne(@Param('id') id: string) {
     return this.ticketsService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ENGINEER)
   update(@Param('id') id: string, @Body() dto: UpdateTicketDto) {
     return this.ticketsService.update(id, dto);
   }
 
   @Patch(':id/status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ENGINEER)
   updateStatus(@Param('id') id: string, @Body() dto: UpdateTicketStatusDto) {
     return this.ticketsService.updateStatus(id, dto);
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   remove(@Param('id') id: string) {
     return this.ticketsService.remove(id);
