@@ -3,10 +3,34 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { TicketEventsService } from '../ticket-events/ticket-events.service';
 
 @Injectable()
 export class TicketsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ticketEventsService: TicketEventsService,
+  ) {}
+
+  private readonly ticketInclude = {
+    device: true,
+    createdByUser: {
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    },
+    assignedToUser: {
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    },
+  };
 
   async create(dto: CreateTicketDto, createdByUserId: string) {
     const device = await this.prisma.device.findUnique({
@@ -29,7 +53,7 @@ export class TicketsService {
       }
     }
 
-    return this.prisma.ticket.create({
+    const ticket = await this.prisma.ticket.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -46,76 +70,30 @@ export class TicketsService {
           },
         }),
       },
-      include: {
-        device: true,
-        createdByUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-        assignedToUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-      },
+      include: this.ticketInclude,
     });
+
+    await this.ticketEventsService.create(ticket.id, 'TICKET_CREATED', 'Ticket was created', {
+      createdByUserId,
+      deviceId: dto.deviceId,
+      assignedToUserId: dto.assignedToUserId,
+    });
+
+    return ticket;
   }
   findAll() {
     return this.prisma.ticket.findMany({
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        device: true,
-        createdByUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-        assignedToUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-      },
+      include: this.ticketInclude,
     });
   }
 
   async findOne(id: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
-      include: {
-        device: true,
-        createdByUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-        assignedToUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-      },
+      include: this.ticketInclude,
     });
 
     if (!ticket) {
@@ -131,25 +109,7 @@ export class TicketsService {
     return this.prisma.ticket.update({
       where: { id },
       data: dto,
-      include: {
-        device: true,
-        createdByUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-        assignedToUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-      },
+      include: this.ticketInclude,
     });
   }
 
@@ -161,25 +121,7 @@ export class TicketsService {
       data: {
         status: dto.status,
       },
-      include: {
-        device: true,
-        createdByUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-        assignedToUser: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-      },
+      include: this.ticketInclude,
     });
   }
 

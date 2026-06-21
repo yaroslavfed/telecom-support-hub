@@ -11,6 +11,15 @@ services:
       - "5433:5432"
     volumes:
       - telecom_postgres_data:/var/lib/postgresql/data
+  mongo:
+    image: mongo:7
+    container_name: telecom-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - telecom_mongo_data:/data/db
 
 volumes:
   telecom_postgres_data:
+  telecom_mongo_data:
