@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TicketEventsModule } from './ticket-events/ticket-events.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TicketEventsModule } from './ticket-events/ticket-events.module';
     DevicesModule,
     TicketsModule,
     TicketEventsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

@@ -4,12 +4,15 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TicketEventsService } from '../ticket-events/ticket-events.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { GetTicketsDto } from './dto/get-tickets.dto';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketEventsService: TicketEventsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   private readonly ticketInclude = {
@@ -79,15 +82,44 @@ export class TicketsService {
       assignedToUserId: dto.assignedToUserId,
     });
 
+    this.notificationsGateway.notifyTicketCreated(ticket);
+
     return ticket;
   }
-  findAll() {
-    return this.prisma.ticket.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: this.ticketInclude,
-    });
+  async findAll(query: GetTicketsDto) {
+    const skip = (query.page - 1) * query.pageSize;
+
+    const where = {
+      ...(query.status && {
+        status: query.status,
+      }),
+      ...(query.priority && {
+        priority: query.priority,
+      }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where,
+        skip,
+        take: query.pageSize,
+        include: this.ticketInclude,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+
+      this.prisma.ticket.count({
+        where,
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
   async findOne(id: string) {
@@ -114,15 +146,34 @@ export class TicketsService {
   }
 
   async updateStatus(id: string, dto: UpdateTicketStatusDto) {
-    await this.findOne(id);
+    const currentTicket = await this.findOne(id);
 
-    return this.prisma.ticket.update({
+    const ticket = await this.prisma.ticket.update({
       where: { id },
       data: {
         status: dto.status,
       },
       include: this.ticketInclude,
     });
+
+    await this.ticketEventsService.create(
+      ticket.id,
+      'STATUS_CHANGED',
+      'Ticket status was changed',
+      {
+        oldStatus: currentTicket.status,
+        newStatus: dto.status,
+      },
+    );
+
+    this.notificationsGateway.notifyTicketStatusChanged({
+      ticketId: ticket.id,
+      oldStatus: currentTicket.status,
+      newStatus: dto.status,
+      ticket,
+    });
+
+    return ticket;
   }
 
   async remove(id: string) {
